@@ -1,14 +1,17 @@
 {
   "name": "photopea-autosave",
   "version": "1.0.0",
-  "description": "Photopea con autoguardado",
+  "description": "Photopea",
   "main": "main.js",
+  "directories": {
+    "output": "dist"
+  },
   "scripts": {
     "start": "electron .",
     "build": "electron-builder"
   },
   "keywords": ["photopea", "editor", "electron"],
-  "author": "Tu Nombre",
+  "author": "soyeldf",
   "license": "MIT",
   "devDependencies": {
     "electron": "^28.0.0",
@@ -16,7 +19,7 @@
   },
   "build": {
     "appId": "com.photopea.autosave",
-    "productName": "Photopea Autosave",
+    "productName": "Photopea",
     "directories": {
       "output": "dist"
     },
@@ -31,7 +34,8 @@
     },
     "mac": {
       "target": "dmg",
-      "icon": "icon.icns"
+      "icon": "icon.icns",
+      "category": "public.app-category.graphics-design"
     },
     "linux": {
       "target": "AppImage",
