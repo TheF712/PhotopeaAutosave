@@ -1,0 +1,232 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="UTF-8">
+  <meta http-equiv="Content-Security-Policy" content="default-src 'self' https://www.photopea.com; script-src 'self' 'unsafe-inline' https://www.photopea.com; style-src 'self' 'unsafe-inline' https://www.photopea.com; img-src 'self' data: https://www.photopea.com blob:; connect-src 'self' https://www.photopea.com;">
+  <title>Photopea con Autoguardado</title>
+  <style>
+    body {
+      margin: 0;
+      padding: 0;
+      overflow: hidden;
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+      background: #1a1a1a;
+    }
+    
+    #status-bar {
+      position: fixed;
+      bottom: 0;
+      left: 0;
+      right: 0;
+      height: 40px;
+      background: #2d2d2d;
+      color: #fff;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: 0 15px;
+      font-size: 12px;
+      z-index: 10000;
+      box-shadow: 0 -2px 5px rgba(0,0,0,0.3);
+      gap: 15px;
+    }
+    
+    #status-bar .status-left {
+      display: flex;
+      align-items: center;
+      gap: 15px;
+      flex-wrap: nowrap;
+    }
+
+    #status-bar .status-right {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+    }
+    
+    #status-bar .status-indicator {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      padding: 4px 10px;
+      border-radius: 4px;
+      user-select: none;
+    }
+    
+    #status-bar .dot {
+      width: 8px;
+      height: 8px;
+      border-radius: 50%;
+      background: #4caf50;
+      animation: pulse 2s infinite;
+      flex-shrink: 0;
+    }
+    
+    #status-bar .dot.saving {
+      background: #ff9800;
+    }
+    
+    #status-bar .dot.disabled {
+      background: #666;
+      animation: none;
+    }
+    
+    @keyframes pulse {
+      0%, 100% { opacity: 1; }
+      50% { opacity: 0.5; }
+    }
+
+    .action-button {
+      background: #444;
+      border: none;
+      color: #fff;
+      padding: 6px 12px;
+      border-radius: 4px;
+      cursor: pointer;
+      font-size: 12px;
+      transition: all 0.2s;
+      white-space: nowrap;
+      font-family: inherit;
+    }
+
+    .action-button:hover {
+      background: #555;
+      transform: translateY(-1px);
+    }
+
+    .action-button:active {
+      transform: translateY(0);
+    }
+
+    #toggle-autosave.inactive {
+      background: #4caf50;
+    }
+
+    #toggle-autosave.inactive:hover {
+      background: #5cbf60;
+    }
+
+    #toggle-autosave.active {
+      background: #444;
+    }
+
+    #toggle-autosave.active:hover {
+      background: #555;
+    }
+    
+    #photopea-frame {
+      position: fixed;
+      top: 0;
+      left: 0;
+      right: 0;
+      bottom: 40px;
+      width: 100%;
+      height: calc(100% - 40px);
+      border: none;
+    }
+    
+    .notification {
+      position: fixed;
+      bottom: 55px;
+      right: 15px;
+      background: #4caf50;
+      color: white;
+      padding: 12px 20px;
+      border-radius: 5px;
+      font-size: 13px;
+      z-index: 10001;
+      animation: slideIn 0.3s ease;
+      box-shadow: 0 3px 10px rgba(0,0,0,0.3);
+    }
+    
+    .notification.error {
+      background: #f44336;
+    }
+    
+    @keyframes slideIn {
+      from {
+        transform: translateX(400px);
+        opacity: 0;
+      }
+      to {
+        transform: translateX(0);
+        opacity: 1;
+      }
+    }
+  </style>
+</head>
+<body>
+  <div id="status-bar">
+    <div class="status-left">
+      <div class="status-indicator">
+        <div class="dot disabled" id="status-dot"></div>
+        <span id="status-text">Autoguardado desactivado</span>
+      </div>
+      <span id="last-save">Último guardado: nunca</span>
+    </div>
+    <div class="status-right">
+      <button id="toggle-autosave" class="action-button inactive">▶️ Activar autoguardado</button>
+      <button id="save-manual" class="action-button">💾 Guardar manualmente</button>
+      <button id="load-last" class="action-button">📂 Cargar último</button>
+      <button id="open-folder" class="action-button">📁 Abrir carpeta</button>
+    </div>
+  </div>
+  
+  <iframe 
+    id="photopea-frame" 
+    src="https://www.photopea.com/"
+    allow="camera; microphone; clipboard-read; clipboard-write">
+  </iframe>
+
+  <script src="renderer.js"></script>
+  <script>
+    // Agregar event listeners para los nuevos botones
+    document.getElementById('save-manual').addEventListener('click', async () => {
+      const showNotification = (msg, isError = false) => {
+        const notification = document.createElement('div');
+        notification.className = `notification ${isError ? 'error' : ''}`;
+        notification.textContent = msg;
+        document.body.appendChild(notification);
+        setTimeout(() => {
+          notification.style.opacity = '0';
+          setTimeout(() => notification.remove(), 300);
+        }, 3000);
+      };
+      
+      showNotification('💾 Guardado manual iniciado...');
+      
+      // Disparar el evento de guardado manual
+      window.dispatchEvent(new Event('manual-save-requested'));
+    });
+
+    document.getElementById('load-last').addEventListener('click', () => {
+      // Disparar el evento de cargar último
+      window.dispatchEvent(new Event('load-last-requested'));
+    });
+
+    document.getElementById('open-folder').addEventListener('click', async () => {
+      try {
+        const result = await window.electronAPI.openAutosaveFolder();
+        const showNotification = (msg, isError = false) => {
+          const notification = document.createElement('div');
+          notification.className = `notification ${isError ? 'error' : ''}`;
+          notification.textContent = msg;
+          document.body.appendChild(notification);
+          setTimeout(() => {
+            notification.style.opacity = '0';
+            setTimeout(() => notification.remove(), 300);
+          }, 3000);
+        };
+        
+        if (result.success) {
+          showNotification('📁 Carpeta de autoguardados abierta');
+        } else {
+          showNotification('✗ Error al abrir carpeta', true);
+        }
+      } catch (err) {
+        console.error(err);
+      }
+    });
+  </script>
+</body>
+</html>
