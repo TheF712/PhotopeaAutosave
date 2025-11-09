@@ -34,12 +34,12 @@ function createWindow() {
       submenu: [
         {
           label: 'Guardar manualmente',
-          accelerator: 'CmdOrCtrl+S',
+          accelerator: 'CmdOrCtrl+Shift+S',
           click: () => mainWindow.webContents.send('manual-save')
         },
         {
           label: 'Cargar último guardado',
-          accelerator: 'CmdOrCtrl+Shift+L',
+          accelerator: 'CmdOrCtrl+Shift+O',
           click: () => {
             console.log('Menú: Cargar último guardado');
             mainWindow.webContents.send('load-last-save');
@@ -65,17 +65,6 @@ function createWindow() {
           accelerator: 'CmdOrCtrl+Q',
           click: () => app.quit()
         }
-      ]
-    },
-    {
-      label: 'Editar',
-      submenu: [
-        { role: 'undo', label: 'Deshacer' },
-        { role: 'redo', label: 'Rehacer' },
-        { type: 'separator' },
-        { role: 'cut', label: 'Cortar' },
-        { role: 'copy', label: 'Copiar' },
-        { role: 'paste', label: 'Pegar' }
       ]
     },
     {

@@ -114,6 +114,9 @@ window.addEventListener('message', async (event) => {
           updateStatus(autosaveEnabled ? 'Autoguardado activo' : 'Autoguardado desactivado', false);
           showNotification('✓ Proyecto guardado automáticamente');
           
+          // Reset del flag de actividad después de guardar exitosamente
+          hasActivitySinceLastSave = false;
+          
           // Actualizar la información del último guardado
           updateLastSaveInfo();
         } else {
