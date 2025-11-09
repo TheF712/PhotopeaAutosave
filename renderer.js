@@ -3,6 +3,8 @@ const AUTOSAVE_INTERVAL = 3 * 60 * 1000; // 3 minutos
 let autosaveTimer = null;
 let lastSaveTime = null;
 let autosaveEnabled = false; // INICIAR DESACTIVADO
+let lastActivityTime = Date.now(); // Rastrear última actividad
+let hasActivitySinceLastSave = false; // Flag para detectar actividad
 
 const photopeaFrame = document.getElementById('photopea-frame');
 const statusDot = document.getElementById('status-dot');
@@ -81,6 +83,7 @@ async function saveProject() {
     `;
     
     sendToPhotopea(script);
+    // Marcar que se guardó (resetear flag de actividad después de recibir confirmación)
   } catch (err) {
     console.error('Error iniciando guardado:', err);
     updateStatus('Error al iniciar guardado', false);
@@ -234,8 +237,12 @@ function startAutosave() {
   }
   
   autosaveTimer = setInterval(() => {
-    if (autosaveEnabled) {
+    if (autosaveEnabled && hasActivitySinceLastSave) {
+      console.log('Actividad detectada, guardando...');
       saveProject();
+      hasActivitySinceLastSave = false; // Reset después de guardar
+    } else if (autosaveEnabled && !hasActivitySinceLastSave) {
+      console.log('Sin actividad desde el último guardado, omitiendo...');
     }
   }, AUTOSAVE_INTERVAL);
   
@@ -324,7 +331,59 @@ photopeaFrame.addEventListener('load', () => {
   
   // NO iniciar autoguardado automáticamente
   showNotification('⏸️ Autoguardado desactivado - Actívalo cuando estés listo');
+  
+  // Detectar actividad en el iframe de Photopea
+  setupActivityDetection();
 });
+
+// Configurar detección de actividad
+function setupActivityDetection() {
+  // Detectar clics en el iframe
+  window.addEventListener('blur', () => {
+    // Cuando la ventana pierde foco, podría ser porque están haciendo clic en Photopea
+    registerActivity();
+  });
+  
+  // Detectar mensajes de Photopea (cualquier interacción genera mensajes)
+  const originalMessageHandler = window.onmessage;
+  window.addEventListener('message', (event) => {
+    if (event.data && event.source === photopeaFrame.contentWindow) {
+      registerActivity();
+    }
+  });
+  
+  // Detectar movimiento del mouse sobre el iframe
+  let mouseOverIframe = false;
+  
+  photopeaFrame.addEventListener('mouseenter', () => {
+    mouseOverIframe = true;
+    registerActivity();
+  });
+  
+  photopeaFrame.addEventListener('mouseleave', () => {
+    mouseOverIframe = false;
+  });
+  
+  // Detectar cuando el mouse se mueve en general
+  document.addEventListener('mousemove', () => {
+    if (mouseOverIframe) {
+      registerActivity();
+    }
+  });
+  
+  console.log('Detección de actividad configurada');
+}
+
+// Registrar actividad del usuario
+function registerActivity() {
+  const now = Date.now();
+  // Solo registrar si han pasado al menos 5 segundos desde la última actividad registrada
+  if (now - lastActivityTime > 5000) {
+    lastActivityTime = now;
+    hasActivitySinceLastSave = true;
+    console.log('Actividad detectada en Photopea');
+  }
+}
 
 // Event listener para guardado manual desde HTML
 window.addEventListener('manual-save-requested', () => {
